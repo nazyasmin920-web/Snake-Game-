@@ -1,0 +1,123 @@
+name: Build & Release Snake Game
+
+on:
+  push:
+    tags:
+      - 'v*'          # triggers on tags like v1.0, v1.2.3
+  workflow_dispatch:  # allows manual trigger from GitHub UI
+
+permissions:
+  contents: write   # needed to create GitHub Releases
+
+jobs:
+  # ─────────────────────────────────────────────
+  #  Windows Build (MSVC + CMake)
+  # ─────────────────────────────────────────────
+  build-windows:
+    name: Windows Build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # CMake is pre-installed on windows-latest
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DUSE_FETCHCONTENT_SFML=ON
+
+      - name: Build (Release)
+        run: cmake --build build --config Release --parallel
+
+      # Download a free open-source font (Ubuntu Regular, OFL licensed)
+      # in case arial.ttf was not committed (system font can't ship in repo)
+      - name: Ensure font exists
+        shell: pwsh
+        run: |
+          $fontDest = "build\Release\assets\fonts\font.ttf"
+          if (-not (Test-Path $fontDest)) {
+            Write-Host "Downloading Ubuntu-Regular.ttf as fallback font..."
+            New-Item -ItemType Directory -Force -Path (Split-Path $fontDest)
+            Invoke-WebRequest `
+              -Uri "https://github.com/google/fonts/raw/main/ofl/ubuntu/Ubuntu-Regular.ttf" `
+              -OutFile $fontDest
+          } else {
+            Write-Host "Font already present."
+          }
+
+      # Package: EXE + all DLLs + assets → ZIP
+      - name: Package release ZIP
+        shell: pwsh
+        run: |
+          $pkg = "SnakeGame-Windows"
+          New-Item -ItemType Directory -Force -Path $pkg | Out-Null
+
+          # Copy game executable
+          Copy-Item "build\Release\SnakeGame.exe" "$pkg\"
+
+          # Copy all DLLs that ended up next to the exe
+          Get-ChildItem "build\Release\*.dll" | Copy-Item -Destination "$pkg\"
+
+          # Copy assets folder
+          if (Test-Path "build\Release\assets") {
+            Copy-Item -Recurse "build\Release\assets" "$pkg\"
+          }
+
+          # Create ZIP
+          Compress-Archive -Path "$pkg\*" -DestinationPath "$pkg.zip" -Force
+          Write-Host "Package contents:"
+          Get-ChildItem $pkg -Recurse | Select-Object FullName
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnakeGame-Windows
+          path: SnakeGame-Windows.zip
+          retention-days: 30
+
+      # ── Only create a GitHub Release when a version tag was pushed ──
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Snake Game Pro ${{ github.ref_name }}"
+          body: |
+            ## 🐍 Snake Game Pro — ${{ github.ref_name }}
+
+            ### ⬇️ How to Play (Windows)
+            1. Download **SnakeGame-Windows.zip** below
+            2. **Extract** the ZIP anywhere on your PC
+            3. Double-click **SnakeGame.exe** — no installation needed!
+
+            ---
+
+            ### 🎮 Controls
+            | Key | Action |
+            |-----|--------|
+            | W / ↑ | Move Up |
+            | A / ← | Move Left |
+            | S / ↓ | Move Down |
+            | D / → | Move Right |
+            | Space | Pause / Resume |
+            | Enter | Start / Restart |
+            | Escape | Quit |
+
+            ---
+
+            ### ✨ Features
+            - Wrap-around borders (no wall death)
+            - Level up every 5 foods — snake changes color each level
+            - Survival timer in HUD
+            - Obstacle blocks appear from Level 6+
+            - Screen shake, particle bursts, floating +10 score popups
+            - Animated snake with tongue, eyes & digestion bulge
+            - Procedural sound effects
+            - High score saved between sessions
+
+            ---
+            > **Requires:** Windows 10/11 (64-bit). No install needed — all DLLs are bundled.
+          files: SnakeGame-Windows.zip
+          draft: false
+          prerelease: false

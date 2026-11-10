@@ -1,16 +1,16 @@
-# Build directories
+# ── Build output ──────────────────────────────
 build/
 bin/
 out/
-_deps/
 
-# CMake generated files
+# ── CMake generated ───────────────────────────
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 Makefile
+_deps/
 
-# IDE and Editor files
+# ── IDE / Editor ──────────────────────────────
 .vs/
 .vscode/
 *.user
@@ -18,16 +18,27 @@ Makefile
 *.sln
 *.vcxproj*
 
-# Compiler artifacts
+# ── Compiler artifacts ────────────────────────
 *.obj
 *.o
+*.pdb
+*.ilk
+*.exp
+*.lib
+
+# ── Binaries (don't commit built executables) ─
 *.exe
 *.dll
 *.so
 *.dylib
-*.pdb
-*.ilk
 
-# Runtime saves
+# ── Runtime saves (personal, don't share) ─────
 highscore.txt
 
+# ── OS junk ───────────────────────────────────
+Thumbs.db
+.DS_Store
+
+# ── Assets: DO commit fonts and sounds ────────
+!assets/
+!assets/**

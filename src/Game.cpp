@@ -2,18 +2,25 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
+#include <cmath>
+#include <random>
 
 Game::Game()
-    : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Snake Game (SFML C++)", sf::Style::Titlebar | sf::Style::Close),
+    : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Snake Game Pro (SFML C++)", sf::Style::Titlebar | sf::Style::Close),
       m_state(GameState::Start),
       m_score(0),
+      m_displayedScore(0.0f),
       m_highScore(0),
       m_level(1),
+      m_gameTime(0.0f),
       m_accumulator(0.0f),
       m_stepTime(BASE_STEP_TIME),
-      m_startBlinkTimer(0.0f) {
+      m_startBlinkTimer(0.0f),
+      m_screenShake(0.0f),
+      m_deathDuration(0.0f) {
     m_window.setFramerateLimit(60);
     m_window.setVerticalSyncEnabled(true);
+    m_defaultView = m_window.getDefaultView();
 
     loadHighScore();
     resetGame();
@@ -22,16 +29,21 @@ Game::Game()
 
 void Game::resetGame() {
     m_score = 0;
+    m_displayedScore = 0.0f;
     m_level = 1;
+    m_gameTime = 0.0f;
     m_stepTime = BASE_STEP_TIME;
     m_accumulator = 0.0f;
+    m_screenShake = 0.0f;
+    m_deathDuration = 0.0f;
+    m_particles.clear();
+    m_floatingTexts.clear();
 
-    // Reset snake in the center of the playable field
     sf::Vector2i startPos(GRID_WIDTH / 2, (PLAY_MIN_Y + PLAY_MAX_Y) / 2);
     m_snake.reset(startPos);
-
-    // Spawn initial food item
-    m_food.respawn(m_snake.getBody(), PLAY_MIN_X, PLAY_MAX_X, PLAY_MIN_Y, PLAY_MAX_Y);
+    m_snake.setLevel(1);
+    m_obstacles.clear();
+    m_food.respawn(m_snake.getBody(), m_obstacles.getObstacles(), PLAY_MIN_X, PLAY_MAX_X, PLAY_MIN_Y, PLAY_MAX_Y);
 }
 
 void Game::run() {
@@ -39,10 +51,7 @@ void Game::run() {
 
     while (m_window.isOpen()) {
         float dt = m_clock.restart().asSeconds();
-        // Prevent large accumulator jumps if the window is moved or briefly frozen
-        if (dt > 0.2f) {
-            dt = 0.2f;
-        }
+        if (dt > 0.2f) dt = 0.2f;
 
         processEvents();
 
@@ -80,7 +89,6 @@ void Game::processEvents() {
 void Game::handleInput(const sf::Event& event) {
     sf::Keyboard::Key key = event.key.code;
 
-    // Global Quit
     if (key == sf::Keyboard::Escape) {
         m_window.close();
         return;
@@ -95,7 +103,6 @@ void Game::handleInput(const sf::Event& event) {
             break;
         }
         case GameState::Playing: {
-            // Movement Controls (WASD & Arrow Keys)
             if (key == sf::Keyboard::W || key == sf::Keyboard::Up) {
                 m_snake.queueDirection(Direction::Up);
             } else if (key == sf::Keyboard::S || key == sf::Keyboard::Down) {
@@ -117,6 +124,9 @@ void Game::handleInput(const sf::Event& event) {
             }
             break;
         }
+        case GameState::Dying: {
+            break;
+        }
         case GameState::GameOver:
         case GameState::Win: {
             if (key == sf::Keyboard::Enter || key == sf::Keyboard::Space) {
@@ -130,24 +140,24 @@ void Game::handleInput(const sf::Event& event) {
 }
 
 void Game::updateFixedStep() {
-    sf::Vector2i nextHead = m_snake.getNextHeadPosition();
+    // 1. Get next head position with boundary wrap (no wall death)
+    sf::Vector2i nextHead = m_snake.getNextHeadPosition(PLAY_MIN_X, PLAY_MAX_X, PLAY_MIN_Y, PLAY_MAX_Y);
     bool willGrow = (nextHead == m_food.getPosition());
 
-    // 1. Check Wall Collision
-    if (nextHead.x < PLAY_MIN_X || nextHead.x > PLAY_MAX_X ||
-        nextHead.y < PLAY_MIN_Y || nextHead.y > PLAY_MAX_Y) {
-        triggerGameOver();
+    // 2. Self Collision: Snake only dies if it bites into its own body!
+    if (m_snake.checkSelfCollision(nextHead, willGrow)) {
+        startDeathSequence();
         return;
     }
 
-    // 2. Check Self Collision (properly accounting for tail vacation)
-    if (m_snake.checkSelfCollision(nextHead, willGrow)) {
-        triggerGameOver();
+    // 2b. Obstacle Collision
+    if (m_obstacles.collidesWith(nextHead)) {
+        startDeathSequence();
         return;
     }
 
     // 3. Advance snake
-    m_snake.step(willGrow);
+    m_snake.step(PLAY_MIN_X, PLAY_MAX_X, PLAY_MIN_Y, PLAY_MAX_Y, willGrow);
 
     // 4. Handle Food Consumption
     if (willGrow) {
@@ -157,44 +167,263 @@ void Game::updateFixedStep() {
             saveHighScore();
         }
 
-        // Increase level and speed every 50 points
-        m_level = 1 + (m_score / 50);
+        // Level increases every 5 food items collected (every 50 points)
+        int newLevel = 1 + (m_score / 50);
+        if (newLevel > m_level) {
+            m_level = newLevel;
+            m_snake.setLevel(m_level); // Transforms the snake's color!
+
+            // Celebratory Level-Up Sound & Banner
+            m_audio.play(SoundId::Start);
+
+            sf::Vector2f headPx(
+                (static_cast<float>(nextHead.x) + 0.5f) * CELL_SIZE,
+                (static_cast<float>(nextHead.y) + 0.5f) * CELL_SIZE
+            );
+            spawnLevelUpParticles(headPx);
+
+            FloatingText ftLvl;
+            if (m_level == 5) {
+                ftLvl.text = "LEVEL 5! CRIMSON DRAGON FORM!";
+                ftLvl.color = sf::Color(255, 45, 75);
+            } else {
+                ftLvl.text = "LEVEL UP! COLOR UNLOCKED!";
+                ftLvl.color = sf::Color(241, 196, 15);
+            }
+            ftLvl.position = sf::Vector2f(WINDOW_WIDTH / 2.0f, 180.0f);
+            ftLvl.lifetime = 1.6f;
+            ftLvl.maxLifetime = 1.6f;
+            m_floatingTexts.push_back(ftLvl);
+        }
+
         m_stepTime = std::max(MIN_STEP_TIME, BASE_STEP_TIME - static_cast<float>(m_level - 1) * 0.007f);
 
         m_audio.play(SoundId::Eat);
+        m_snake.triggerDigestBulge();
 
-        // Respawn food on an available empty cell
-        bool spawned = m_food.respawn(m_snake.getBody(), PLAY_MIN_X, PLAY_MAX_X, PLAY_MIN_Y, PLAY_MAX_Y);
+        sf::Vector2f foodPx = m_food.getPixelPosition(CELL_SIZE);
+        spawnFoodParticles(foodPx);
+
+        FloatingText ft;
+        ft.text = "+10";
+        ft.position = foodPx;
+        ft.color = sf::Color(241, 196, 15);
+        ft.lifetime = 0.8f;
+        ft.maxLifetime = 0.8f;
+        m_floatingTexts.push_back(ft);
+
+        bool spawned = m_food.respawn(m_snake.getBody(), m_obstacles.getObstacles(), PLAY_MIN_X, PLAY_MAX_X, PLAY_MIN_Y, PLAY_MAX_Y);
         if (!spawned) {
             triggerWin();
+        } else if (m_level >= 6) {
+            // Spawn obstacles near the new food position, every 6 levels
+            m_obstacles.onFoodSpawned(m_food.getPosition(), m_snake.getBody(),
+                                      PLAY_MIN_X, PLAY_MAX_X, PLAY_MIN_Y, PLAY_MAX_Y, m_level);
+        }
+    }
+}
+
+void Game::startDeathSequence() {
+    m_state = GameState::Dying;
+    m_deathDuration = 1.3f;
+    m_screenShake = 12.0f;
+    m_snake.setDead(true);
+
+    spawnDeathParticles();
+    m_audio.play(SoundId::GameOver);
+}
+
+void Game::spawnFoodParticles(const sf::Vector2f& pos) {
+    static std::mt19937 rng(std::random_device{}());
+    std::uniform_real_distribution<float> angleDist(0.0f, 6.2831853f);
+    std::uniform_real_distribution<float> speedDist(40.0f, 130.0f);
+    std::uniform_real_distribution<float> sizeDist(2.0f, 4.0f);
+    std::uniform_real_distribution<float> lifeDist(0.35f, 0.65f);
+
+    for (int i = 0; i < 18; ++i) {
+        float angle = angleDist(rng);
+        float speed = speedDist(rng);
+        Particle p;
+        p.position = pos;
+        p.velocity = sf::Vector2f(std::cos(angle) * speed, std::sin(angle) * speed);
+        p.size = sizeDist(rng);
+        p.lifetime = lifeDist(rng);
+        p.maxLifetime = p.lifetime;
+
+        if (i % 2 == 0) {
+            p.color = sf::Color(255, 215, 0);
+        } else {
+            p.color = sf::Color(255, 75, 95);
+        }
+        m_particles.push_back(p);
+    }
+}
+
+void Game::spawnLevelUpParticles(const sf::Vector2f& pos) {
+    static std::mt19937 rng(std::random_device{}());
+    std::uniform_real_distribution<float> angleDist(0.0f, 6.2831853f);
+    std::uniform_real_distribution<float> speedDist(90.0f, 260.0f);
+    std::uniform_real_distribution<float> sizeDist(3.0f, 6.0f);
+    std::uniform_real_distribution<float> lifeDist(0.8f, 1.4f);
+
+    for (int i = 0; i < 35; ++i) {
+        float angle = angleDist(rng);
+        float speed = speedDist(rng);
+        Particle p;
+        p.position = pos;
+        p.velocity = sf::Vector2f(std::cos(angle) * speed, std::sin(angle) * speed);
+        p.size = sizeDist(rng);
+        p.lifetime = lifeDist(rng);
+        p.maxLifetime = p.lifetime;
+
+        if (i % 3 == 0) {
+            p.color = sf::Color(255, 45, 75); // Ruby
+        } else if (i % 3 == 1) {
+            p.color = sf::Color(0, 229, 255); // Cyan
+        } else {
+            p.color = sf::Color(255, 215, 0); // Gold
+        }
+        m_particles.push_back(p);
+    }
+}
+
+void Game::spawnDeathParticles() {
+    static std::mt19937 rng(std::random_device{}());
+    std::uniform_real_distribution<float> angleDist(0.0f, 6.2831853f);
+    std::uniform_real_distribution<float> speedDist(60.0f, 220.0f);
+    std::uniform_real_distribution<float> sizeDist(2.5f, 5.0f);
+    std::uniform_real_distribution<float> lifeDist(0.5f, 1.1f);
+
+    const auto& body = m_snake.getBody();
+    for (size_t s = 0; s < body.size(); ++s) {
+        sf::Vector2f segPos(
+            (static_cast<float>(body[s].x) + 0.5f) * CELL_SIZE,
+            (static_cast<float>(body[s].y) + 0.5f) * CELL_SIZE
+        );
+
+        int count = (s == 0) ? 14 : 5;
+        for (int i = 0; i < count; ++i) {
+            float angle = angleDist(rng);
+            float speed = speedDist(rng);
+            Particle p;
+            p.position = segPos;
+            p.velocity = sf::Vector2f(std::cos(angle) * speed, std::sin(angle) * speed);
+            p.size = sizeDist(rng);
+            p.lifetime = lifeDist(rng);
+            p.maxLifetime = p.lifetime;
+
+            if (i % 3 == 0) {
+                p.color = sf::Color(231, 76, 60);
+            } else if (i % 3 == 1) {
+                p.color = sf::Color(46, 204, 113);
+            } else {
+                p.color = sf::Color(241, 196, 15);
+            }
+            m_particles.push_back(p);
         }
     }
 }
 
 void Game::update(float dt) {
     m_food.updateAnimation(dt);
+    m_snake.updateAnimation(dt);
+    m_obstacles.updateAnimation(dt);
 
     if (m_state == GameState::Start) {
         m_startBlinkTimer += dt;
     }
+
+    // Active game timer: advances only while playing
+    if (m_state == GameState::Playing) {
+        m_gameTime += dt;
+    }
+
+    if (m_state == GameState::Dying) {
+        m_deathDuration -= dt;
+        if (m_deathDuration <= 0.0f) {
+            triggerGameOver();
+        }
+    }
+
+    if (m_screenShake > 0.0f) {
+        m_screenShake = std::max(0.0f, m_screenShake - dt * 26.0f);
+    }
+
+    m_displayedScore += (static_cast<float>(m_score) - m_displayedScore) * std::min(1.0f, dt * 10.0f);
+
+    for (auto& p : m_particles) {
+        p.position += p.velocity * dt;
+        p.velocity *= 0.92f;
+        p.lifetime -= dt;
+    }
+    m_particles.erase(
+        std::remove_if(m_particles.begin(), m_particles.end(),
+                       [](const Particle& p) { return p.lifetime <= 0.0f; }),
+        m_particles.end()
+    );
+
+    for (auto& ft : m_floatingTexts) {
+        ft.position.y -= 30.0f * dt;
+        ft.lifetime -= dt;
+    }
+    m_floatingTexts.erase(
+        std::remove_if(m_floatingTexts.begin(), m_floatingTexts.end(),
+                       [](const FloatingText& ft) { return ft.lifetime <= 0.0f; }),
+        m_floatingTexts.end()
+    );
 }
 
 void Game::render(float alpha) {
-    m_window.clear(sf::Color(18, 20, 28));
+    if (m_screenShake > 0.1f) {
+        static std::mt19937 rng(std::random_device{}());
+        std::uniform_real_distribution<float> offsetDist(-m_screenShake, m_screenShake);
+        sf::View shakenView = m_defaultView;
+        shakenView.move(offsetDist(rng), offsetDist(rng));
+        m_window.setView(shakenView);
+    } else {
+        m_window.setView(m_defaultView);
+    }
 
-    // 1. Render arena grid and playing field
+    m_window.clear(sf::Color(14, 17, 24));
+
+    // 1. Render arena grid
     m_ui.renderGrid(m_window, PLAY_MIN_X, PLAY_MAX_X, PLAY_MIN_Y, PLAY_MAX_Y, CELL_SIZE);
 
     // 2. Render Food
     m_food.render(m_window, CELL_SIZE);
 
-    // 3. Render Snake with smooth visual interpolation
+    // 3. Render Obstacles
+    m_obstacles.render(m_window, CELL_SIZE);
+
+    // 4. Render Snake
     m_snake.render(m_window, alpha, CELL_SIZE);
 
-    // 4. Render top HUD
-    m_ui.renderHUD(m_window, m_score, m_highScore, m_level, WINDOW_WIDTH, HUD_HEIGHT);
+    // 5. Render Particle Bursts
+    for (const auto& p : m_particles) {
+        float lifeRatio = std::clamp(p.lifetime / p.maxLifetime, 0.0f, 1.0f);
+        sf::CircleShape partShape(p.size * lifeRatio);
+        partShape.setOrigin(p.size * lifeRatio, p.size * lifeRatio);
+        partShape.setPosition(p.position);
 
-    // 5. Render overlays based on game state
+        sf::Color c = p.color;
+        c.a = static_cast<sf::Uint8>(lifeRatio * 255.0f);
+        partShape.setFillColor(c);
+        m_window.draw(partShape);
+    }
+
+    // 6. Render Floating Texts
+    for (const auto& ft : m_floatingTexts) {
+        float lifeRatio = std::clamp(ft.lifetime / ft.maxLifetime, 0.0f, 1.0f);
+        m_ui.renderFloatingText(m_window, ft.text, ft.position, ft.color, lifeRatio);
+    }
+
+    m_window.setView(m_defaultView);
+
+    // 7. Render top HUD
+    m_ui.renderHUD(m_window, static_cast<int>(std::round(m_displayedScore)),
+                   m_highScore, m_level, m_gameTime, WINDOW_WIDTH, HUD_HEIGHT);
+
+    // 8. Render Overlays
     switch (m_state) {
         case GameState::Start:
             m_ui.renderStartScreen(m_window, WINDOW_WIDTH, WINDOW_HEIGHT, m_startBlinkTimer);
@@ -203,12 +432,13 @@ void Game::render(float alpha) {
             m_ui.renderPauseScreen(m_window, WINDOW_WIDTH, WINDOW_HEIGHT);
             break;
         case GameState::GameOver:
-            m_ui.renderGameOverScreen(m_window, m_score, m_highScore, WINDOW_WIDTH, WINDOW_HEIGHT);
+            m_ui.renderGameOverScreen(m_window, m_score, m_highScore, m_gameTime, WINDOW_WIDTH, WINDOW_HEIGHT);
             break;
         case GameState::Win:
-            m_ui.renderWinScreen(m_window, m_score, WINDOW_WIDTH, WINDOW_HEIGHT);
+            m_ui.renderWinScreen(m_window, m_score, m_gameTime, WINDOW_WIDTH, WINDOW_HEIGHT);
             break;
         case GameState::Playing:
+        case GameState::Dying:
             break;
     }
 
@@ -217,7 +447,6 @@ void Game::render(float alpha) {
 
 void Game::triggerGameOver() {
     m_state = GameState::GameOver;
-    m_audio.play(SoundId::GameOver);
     if (m_score > m_highScore) {
         m_highScore = m_score;
         saveHighScore();
@@ -253,4 +482,3 @@ void Game::saveHighScore() {
         outFile.close();
     }
 }
-

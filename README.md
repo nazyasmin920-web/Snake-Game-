@@ -1,21 +1,52 @@
-# 🐍 2D Snake Game in C++ (SFML)
+# 🐍 2D Snake Game Pro (SFML C++)
 
-A complete, modern, real-time graphical **2D Snake Game** built in **C++17** using the **SFML 2.6** graphics and audio library, configured with **CMake**.
+A modern, real-time graphical **2D Snake Game** built in **C++17** using the **SFML 2.6** graphics and audio library, configured with **CMake**.
 
-Featuring responsive keyboard controls, a fixed-timestep game loop with smooth visual interpolation, dynamic procedural sound effects, animated food, persistent high scores, and polished game states.
+Featuring responsive keyboard controls, sub-pixel smoothstep movement interpolation, dramatic death sequence with screen shake and particle explosion, dynamic food digestion ripples, procedural audio, and polished arcade visuals.
 
 ---
 
-## 🎮 Features
+## 🎮 New & Enhanced Features
 
-- **Graphical Window:** Rendered in a crisp 800×600 window with 20px grid cells (40×30 cells).
-- **Smooth Gameplay:** Fixed-timestep game loop (grid logic) separated from 60 FPS rendering with smooth linear visual interpolation.
-- **Responsive Controls:** Buffered input queue for **W, A, S, D** and **Arrow Keys** preventing lost turns or accidental 180° neck collisions.
-- **Audio System:** Built-in retro audio effects (Eat, Game Over, Start, Pause) with procedural in-memory synthesis fallback if WAV files are missing.
-- **Food System:** Guaranteed collision-free random food placement with breathing pulse animation and victory trigger on board completion.
-- **Score & High Score:** Tracks current score, persistent high score (saved to `highscore.txt`), and progressive speed scaling.
-- **Game States:** Start Screen, Active Gameplay, Pause/Resume, Game Over, and Win screens.
-- **Zero-Hassle Dependency Management:** Automatically downloads and configures SFML 2.6.2 via CMake's `FetchContent` if no local SFML install is present.
+- **⏱️ Live Game Timer:**
+  - Real-time match survival timer formatted as `MM:SS` (e.g. `01:42`) displayed directly in the top HUD.
+  - Automatically pauses when the game is paused.
+  - Final survival time is preserved and showcased on the Game Over and Victory screens.
+- **🌈 Dynamic Snake Colors & Level 5 Crimson Transformation:**
+  - Every 5 food items collected (50 points), the game levels up!
+  - With each level, the snake's skin dynamically transforms into a new vibrant color theme:
+    - **Level 1:** Emerald Neon Green
+    - **Level 2:** Electric Cyber Cyan / Aqua
+    - **Level 3:** Royal Amethyst Purple
+    - **Level 4:** Radiant Solar Gold / Amber Blaze
+    - **Level 5:** 🔥 **Crimson Inferno / Ruby Dragon** (Legendary transformation!)
+    - **Level 6+:** Prismatic Cosmic Chroma (smoothly shifts through the entire rainbow spectrum!)
+  - Celebratory **"LEVEL UP!"** floating banner and firework spark burst when unlocking new tiers!
+- **🌀 Pass-Through Portal Lines (No Death on Borders):**
+  - The boundary lines are now **pass-through portals**: when the snake crosses the left, right, top, or bottom border, it smoothly wraps around and re-enters from the opposite side!
+  - **The snake NEVER dies from touching the lines.**
+  - The snake **ONLY dies if it bites into its own body (self-collision)**.
+- **💥 Dramatic Death Sequence:**
+  - Screen shake effect on impact with walls or self.
+  - Snake head transforms into cartoon stunned **"X"** eyes upon dying.
+  - Multi-colored explosive particle burst (emerald, crimson, and gold sparks) cascading from the snake upon collision.
+  - Segment flash and collapse transition before displaying the Game Over card.
+- **✨ Enhanced Modern Arcade Graphics:**
+  - **Organic Snake Body:** Rounded connected segments with soft 3D drop-shadows and specular glossy highlights.
+  - **Living Animations:** Animated red forked tongue flicking in the direction of movement. Expressive cartoon eyes that look towards the direction of travel with specular glints.
+  - **Food Digestion Ripple:** Swallowed food generates a physical bulge traveling down the snake's body in real time!
+  - **Juicy Apple:** Multi-layered pulsing glowing aura, floating idle bobbing, 3D drop shadow, brown stem, and green leaf.
+  - **Floating Score Popups:** Floating `+10` indicators rise and fade out on food consumption.
+  - **Particle Systems:** Sparkling star bursts on eating food and fireworks on victory.
+- **🏎️ Ultra-Smooth Motion:**
+  - High-precision fixed-timestep logic decoupled from rendering.
+  - **Smoothstep cubic interpolation** ($3\alpha^2 - 2\alpha^3$) eliminates micro-stutter and creates butter-smooth motion at 60 FPS / 144+ FPS.
+  - Smooth animated score ticker.
+  - Progress bar in the top HUD showing progress towards the next speed level.
+- **🕹️ Responsive Controls:**
+  - Two-command input queue buffering fast combination turns without dropped keys or accidental 180° neck collisions.
+- **🔊 Hybrid Sound System:**
+  - Procedural in-memory PCM audio synthesis fallback ensuring audio always works even without external WAV files.
 
 ---
 
@@ -42,7 +73,7 @@ Sanke game/
 ├── .gitignore              # Git ignore rules for build artifacts and IDE files
 ├── assets/
 │   ├── fonts/
-│   │   └── font.ttf        # Game typography (bundled TrueType font)
+│   │   └── font.ttf        # Bundled TrueType font for HUD and UI overlays
 │   └── sounds/
 │       ├── eat.wav         # Crisp rising chirp for food consumption
 │       ├── gameover.wav    # Descending buzz for collision
@@ -51,9 +82,9 @@ Sanke game/
 ├── include/
 │   ├── Audio.hpp           # Sound manager with procedural sample synthesis fallback
 │   ├── Food.hpp            # Food placement, random generator, and pulse animation
-│   ├── Game.hpp            # Master game loop, state machine, and window event coordinator
-│   ├── Snake.hpp           # Body segments, input queue, step logic, and self-collision
-│   └── UI.hpp              # HUD rendering, overlays (Start, Pause, Game Over, Win), and grid
+│   ├── Game.hpp            # Master game loop, state machine, particle engine, and camera shake
+│   ├── Snake.hpp           # Body segments, smoothstep interpolation, digestion bulges, and death states
+│   └── UI.hpp              # HUD rendering, overlays (Start, Pause, Game Over, Win), and floating text
 └── src/
     ├── Audio.cpp
     ├── Food.cpp
@@ -63,142 +94,13 @@ Sanke game/
     └── UI.cpp
 ```
 
-### Module Responsibilities
-
-1. **`Game` (`include/Game.hpp`, `src/Game.cpp`)**
-   - Coordinates window creation, event polling, timing accumulator, and top-level game state transitions (`Start`, `Playing`, `Paused`, `GameOver`, `Win`).
-   - Manages persistent high score reading/writing to `highscore.txt`.
-   - Controls game difficulty and speed scaling based on food collected.
-
-2. **`Snake` (`include/Snake.hpp`, `src/Snake.cpp`)**
-   - Stores snake coordinates using `std::deque<sf::Vector2i>`.
-   - Stores previous frame coordinates (`m_prevBody`) to enable smooth visual interpolation.
-   - Implements a 2-command buffered input queue (`queueDirection`) to ensure fast, consecutive key presses are never dropped while preventing suicidal reverse turns.
-   - Employs accurate tail-vacation rules: when moving into the cell the tail is leaving, no self-collision occurs unless the snake is actively growing.
-
-3. **`Food` (`include/Food.hpp`, `src/Food.cpp`)**
-   - Uses C++ `<random>` (`std::mt19937`) to select from currently unoccupied grid coordinates.
-   - Detects full-board completion and triggers the victory state.
-   - Updates sinusoidal pulse animation for a breathing arcade visual effect.
-
-4. **`UI` (`include/UI.hpp`, `src/UI.cpp`)**
-   - Draws the top HUD (Score, High Score, Level indicator) and play arena grid.
-   - Renders game state cards (Start Screen, Pause Screen, Game Over Screen, Win Screen).
-   - Graceful fallback: if no `.ttf` font can be located on the system, falls back to a procedural vector font renderer so the game never crashes.
-
-5. **`Audio` (`include/Audio.hpp`, `src/Audio.cpp`)**
-   - Loads WAV assets from `assets/sounds/` or generates 16-bit PCM waveform samples directly in memory via `sf::SoundBuffer::loadFromSamples`.
-   - Gracefully handles missing audio hardware without terminating the application.
-
 ---
 
-## 🧠 Key C++ Concepts & Design Highlights
+## 🛠️ How to Run the Game
 
-1. **Fixed Timestep with Visual Interpolation:**
-   - Grid movements happen at discrete time intervals (e.g. every `0.12s`).
-   - The rendering runs uninhibited at 60 FPS.
-   - By calculating `alpha = accumulator / stepTime`, the snake's visual position is linearly interpolated:
-     $$\text{renderPos} = \text{prevPos} \cdot (1 - \alpha) + \text{currPos} \cdot \alpha$$
-     This guarantees silky-smooth movement without altering grid collision logic.
+To launch the compiled game at any time:
 
-2. **Tail-Vacation Self-Collision Logic:**
-   - When a snake does not eat food, its tail cell becomes empty in the same step the head advances.
-   - Checking collision against `m_body[0 ... size - 2]` allows the snake to follow its own tail into tight loops without a false game-over.
-
-3. **Input Buffering Queue:**
-   - Casual players often press a secondary direction before the next grid tick finishes. By holding up to two valid directional inputs in a `std::queue<Direction>`, turns feel instantaneous and responsive.
-
-4. **Procedural Sound Wave Synthesis:**
-   - Instead of hard-failing when an external WAV file is absent, trigonometric waveform generation ($\sin(2\pi f t)$) with exponential amplitude decay builds audio buffers directly into memory.
-
----
-
-## 🛠️ Build and Run Instructions (Windows)
-
-### Prerequisites
-
-Ensure you have one of the following development toolchains installed:
-- **Visual Studio 2019 / 2022** (with the *Desktop development with C++* workload) — **Recommended**
-- **VS Code** with the *C/C++* and *CMake Tools* extensions.
-- **MinGW-w64** (GCC 9.0+) with CMake 3.16+.
-
----
-
-### Method 1: Using Visual Studio 2022 (Easiest)
-
-1. Launch **Visual Studio 2022**.
-2. Select **Open a local folder** and navigate to:
-   `c:\Users\Naz Yasmin\OneDrive\Desktop\Sanke game`
-3. Visual Studio will automatically detect `CMakeLists.txt` and generate the CMake cache.
-   - *Note: CMake will automatically download and link SFML 2.6.2 via `FetchContent`.*
-4. Select `SnakeGame.exe` as the startup item from the top toolbar dropdown.
-5. Press **F5** (or the green Play button) to build and run the game!
-
----
-
-### Method 2: Command Line (Developer PowerShell / Command Prompt)
-
-1. Open **Developer Command Prompt for VS 2022** (or standard PowerShell if `cmake` and your compiler are in PATH):
-2. Navigate to the project directory:
-   ```cmd
-   cd "c:\Users\Naz Yasmin\OneDrive\Desktop\Sanke game"
-   ```
-3. Configure the build directory:
-   ```cmd
-   cmake -S . -B build
-   ```
-   *(CMake will configure the project and fetch SFML 2.6.2 automatically)*
-4. Compile the project in Release mode:
-   ```cmd
-   cmake --build build --config Release
-   ```
-5. Launch the game:
-   ```cmd
-   .\build\Release\SnakeGame.exe
-   ```
-   *(Or `.\build\SnakeGame.exe` depending on generator)*
-
----
-
-### Method 3: Using a Pre-Installed SFML Directory (Optional)
-
-If you already downloaded pre-compiled SFML 2.6 binaries from [sfml-dev.org](https://www.sfml-dev.org/download.php):
-1. Extract SFML (e.g. to `C:\SFML-2.6.2`).
-2. Run CMake with the `SFML_DIR` flag:
-   ```cmd
-   cmake -S . -B build -DSFML_DIR="C:/SFML-2.6.2/lib/cmake/SFML"
-   cmake --build build --config Release
-   ```
-
----
-
-## 🔍 Troubleshooting Common Windows Issues
-
-| Issue | Cause | Solution |
-| :--- | :--- | :--- |
-| **Missing SFML DLLs (`sfml-graphics-2.dll`, etc.)** | Dynamic libraries were not copied next to the executable. | Our `CMakeLists.txt` has a post-build command that automatically copies runtime DLLs. If running manually, copy all `.dll` files from SFML's `bin/` folder into `build/Release/`. |
-| **Missing `openal32.dll`** | Audio driver library missing from binary path. | Copy `openal32.dll` (located in SFML's `bin/` or `_deps/sfml-build/extlibs/bin/`) to the executable directory. |
-| **Text is invisible or looks blocky** | Missing font or corrupted font file. | The game includes `assets/fonts/font.ttf` and automatically checks `C:/Windows/Fonts/arial.ttf` as a system backup. In the worst case, the built-in procedural vector font activates automatically. |
-| **Window closes immediately on launch** | Missing assets or unhandled crash. | Check the console output or verify that the `assets/` directory exists in the folder from which `SnakeGame.exe` is run. |
-
----
-
-## 📋 Testing Verification Checklist
-
-- [x] Game renders inside an 800×600 graphical window (not terminal).
-- [x] W, A, S, D and Arrow keys control the snake smoothly.
-- [x] Direct reverse turn into neck is safely blocked.
-- [x] Input buffer handles rapid double-turns reliably.
-- [x] Snake moves at fixed grid speed with smooth 60 FPS visual interpolation.
-- [x] Snake grows by 1 segment upon eating food.
-- [x] Food never spawns inside the snake.
-- [x] Score increments by 10 per food and high score updates.
-- [x] Wall collision and self-collision trigger Game Over.
-- [x] Tail leaving cell allows valid moves on non-growth ticks.
-- [x] Space pauses and resumes gameplay.
-- [x] Enter starts from menu and restarts from Game Over / Win.
-- [x] Board completion triggers Victory screen.
-- [x] High score persists to `highscore.txt`.
-- [x] Clean window close with ESC or 'X' button.
-- [x] CMake build system automatically fetches SFML if needed.
-
+```powershell
+.\build\SnakeGame.exe
+```
+*(Or double-click `SnakeGame.exe` in the `build` folder in Windows File Explorer).*

@@ -5,14 +5,34 @@
 #include "Food.hpp"
 #include "UI.hpp"
 #include "Audio.hpp"
+#include "Obstacle.hpp"
 #include <string>
+#include <vector>
 
 enum class GameState {
     Start,
     Playing,
     Paused,
+    Dying,
     GameOver,
     Win
+};
+
+struct Particle {
+    sf::Vector2f position;
+    sf::Vector2f velocity;
+    sf::Color color;
+    float lifetime;
+    float maxLifetime;
+    float size;
+};
+
+struct FloatingText {
+    std::string text;
+    sf::Vector2f position;
+    sf::Color color;
+    float lifetime;
+    float maxLifetime;
 };
 
 class Game {
@@ -20,27 +40,27 @@ public:
     Game();
     ~Game() = default;
 
-    // Run the main game loop
     void run();
 
 private:
-    // Core game loop stages
     void processEvents();
     void handleInput(const sf::Event& event);
     void update(float dt);
     void updateFixedStep();
     void render(float alpha);
 
-    // Game lifecycle helpers
     void resetGame();
+    void startDeathSequence();
     void triggerGameOver();
     void triggerWin();
 
-    // High score persistence
+    void spawnFoodParticles(const sf::Vector2f& pos);
+    void spawnDeathParticles();
+    void spawnLevelUpParticles(const sf::Vector2f& pos);
+
     void loadHighScore();
     void saveHighScore();
 
-    // Game constants
     static constexpr int CELL_SIZE = 20;
     static constexpr int GRID_WIDTH = 40;
     static constexpr int GRID_HEIGHT = 30;
@@ -49,34 +69,38 @@ private:
     static constexpr int HUD_HEIGHT = 40;
     static constexpr int PLAY_MIN_X = 0;
     static constexpr int PLAY_MAX_X = GRID_WIDTH - 1;            // 39
-    static constexpr int PLAY_MIN_Y = 2;                         // Rows 0 and 1 are reserved for HUD
+    static constexpr int PLAY_MIN_Y = 2;
     static constexpr int PLAY_MAX_Y = GRID_HEIGHT - 1;           // 29
 
     static constexpr float BASE_STEP_TIME = 0.12f;
     static constexpr float MIN_STEP_TIME = 0.05f;
 
-    // SFML Window
     sf::RenderWindow m_window;
+    sf::View m_defaultView;
 
-    // Game sub-systems
     Snake m_snake;
     Food m_food;
     UI m_ui;
     Audio m_audio;
+    ObstacleManager m_obstacles;
 
-    // State management
     GameState m_state;
     int m_score;
+    float m_displayedScore;
     int m_highScore;
     int m_level;
+    float m_gameTime;
 
-    // Timing
     sf::Clock m_clock;
     float m_accumulator;
     float m_stepTime;
     float m_startBlinkTimer;
 
-    // High score file path
+    // Visual polish systems
+    float m_screenShake;
+    float m_deathDuration;
+    std::vector<Particle> m_particles;
+    std::vector<FloatingText> m_floatingTexts;
+
     const std::string m_highScoreFile = "highscore.txt";
 };
-

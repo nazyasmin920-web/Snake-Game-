@@ -17,6 +17,7 @@ set(SOURCES
     src/Food.cpp
     src/UI.cpp
     src/Audio.cpp
+    src/Obstacle.cpp
 )
 
 set(HEADERS
@@ -25,6 +26,7 @@ set(HEADERS
     include/Food.hpp
     include/UI.hpp
     include/Audio.hpp
+    include/Obstacle.hpp
 )
 
 # ---------------------------------------------------------

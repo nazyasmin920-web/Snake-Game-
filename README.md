@@ -2,10 +2,10 @@
 
 <div align="center">
 
-[![Build & Release](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/release.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/release.yml)
-[![Latest Release](https://img.shields.io/github/v/release/YOUR_USERNAME/YOUR_REPO?label=Download&logo=github)](https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest)
+[![Build & Release](https://github.com/nazyasmin920-web/Snake-Game-/actions/workflows/release.yml/badge.svg)](https://github.com/nazyasmin920-web/Snake-Game-/actions/workflows/release.yml)
+[![Latest Release](https://img.shields.io/github/v/release/nazyasmin920-web/Snake-Game-?label=Download&logo=github)](https://github.com/nazyasmin920-web/Snake-Game-/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-blue?logo=windows)](https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-blue?logo=windows)](https://github.com/nazyasmin920-web/Snake-Game-/releases/latest)
 
 **A polished, modern Snake game built in C++17 with SFML 2.6**
 
@@ -19,7 +19,7 @@
 
 > **Windows 10/11 — No installation required. Just download, unzip, and double-click.**
 
-1. Go to the [**Releases page →**](https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest)
+1. Go to the [**Releases page →**](https://github.com/nazyasmin920-web/Snake-Game-/releases/latest)
 2. Download **`SnakeGame-Windows.zip`**
 3. **Extract** the ZIP to any folder
 4. Double-click **`SnakeGame.exe`**

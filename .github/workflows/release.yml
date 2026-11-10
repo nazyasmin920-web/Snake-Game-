@@ -121,3 +121,4 @@ jobs:
           files: SnakeGame-Windows.zip
           draft: false
           prerelease: false
+

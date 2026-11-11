@@ -18,12 +18,22 @@ public:
                    int windowWidth, int hudHeight) const;
 
     // Screens
+    void renderModeSelectScreen(sf::RenderWindow& window, int windowWidth, int windowHeight, float blinkTimer) const;
     void renderStartScreen(sf::RenderWindow& window, int windowWidth, int windowHeight, float blinkTimer) const;
     void renderPauseScreen(sf::RenderWindow& window, int windowWidth, int windowHeight) const;
     void renderGameOverScreen(sf::RenderWindow& window, int score, int highScore, float gameTime,
                               int windowWidth, int windowHeight) const;
+    void renderChallengeGameOverScreen(sf::RenderWindow& window, int wave, int foodEaten, int target,
+                                       float gameTime, int windowWidth, int windowHeight) const;
     void renderWinScreen(sf::RenderWindow& window, int score, float gameTime,
                          int windowWidth, int windowHeight) const;
+    void renderChallengeWinScreen(sf::RenderWindow& window, int wave, int score,
+                                  float gameTime, int windowWidth, int windowHeight) const;
+
+    // Challenge HUD overlay (countdown + food progress bar)
+    void renderChallengeHUD(sf::RenderWindow& window, int foodEaten, int target,
+                            float timeLeft, float totalTime, int wave,
+                            int windowWidth, int hudHeight) const;
 
     // Helper to draw floating score/level texts
     void renderFloatingText(sf::RenderWindow& window, const std::string& text,

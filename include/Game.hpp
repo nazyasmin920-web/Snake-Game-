@@ -10,12 +10,18 @@
 #include <vector>
 
 enum class GameState {
+    ModeSelect,   // NEW: main menu to pick mode
     Start,
     Playing,
     Paused,
     Dying,
     GameOver,
     Win
+};
+
+enum class GameMode {
+    Classic,      // original endless game
+    Challenge     // eat N foods before countdown hits zero
 };
 
 struct Particle {
@@ -85,11 +91,19 @@ private:
     ObstacleManager m_obstacles;
 
     GameState m_state;
+    GameMode  m_gameMode;
     int m_score;
     float m_displayedScore;
     int m_highScore;
     int m_level;
     float m_gameTime;
+
+    // ── Challenge mode vars ──────────────────────────
+    int   m_challengeWave;        // current wave (1-based)
+    int   m_challengeTarget;      // foods to eat this wave
+    int   m_challengeFoodEaten;   // foods eaten so far this wave
+    float m_challengeTimeLeft;    // countdown seconds remaining
+    float m_challengeWaveFlash;   // brief "WAVE COMPLETE" flash timer
 
     sf::Clock m_clock;
     float m_accumulator;

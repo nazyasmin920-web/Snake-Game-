@@ -7,7 +7,8 @@
 
 Game::Game()
     : m_window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Snake Game Pro (SFML C++)", sf::Style::Titlebar | sf::Style::Close),
-      m_state(GameState::Start),
+      m_state(GameState::ModeSelect),
+      m_gameMode(GameMode::Classic),
       m_score(0),
       m_displayedScore(0.0f),
       m_highScore(0),
@@ -17,14 +18,19 @@ Game::Game()
       m_stepTime(BASE_STEP_TIME),
       m_startBlinkTimer(0.0f),
       m_screenShake(0.0f),
-      m_deathDuration(0.0f) {
+      m_deathDuration(0.0f),
+      m_challengeWave(1),
+      m_challengeTarget(5),
+      m_challengeFoodEaten(0),
+      m_challengeTimeLeft(30.0f),
+      m_challengeWaveFlash(0.0f) {
     m_window.setFramerateLimit(60);
     m_window.setVerticalSyncEnabled(true);
     m_defaultView = m_window.getDefaultView();
 
     loadHighScore();
     resetGame();
-    m_state = GameState::Start;
+    m_state = GameState::ModeSelect; // Always start at mode select
 }
 
 void Game::resetGame() {
@@ -38,6 +44,15 @@ void Game::resetGame() {
     m_deathDuration = 0.0f;
     m_particles.clear();
     m_floatingTexts.clear();
+
+    // Challenge mode: reset wave state
+    if (m_gameMode == GameMode::Challenge) {
+        m_challengeWave       = 1;
+        m_challengeTarget     = 5;
+        m_challengeFoodEaten  = 0;
+        m_challengeTimeLeft   = 30.0f;
+        m_challengeWaveFlash  = 0.0f;
+    }
 
     sf::Vector2i startPos(GRID_WIDTH / 2, (PLAY_MIN_Y + PLAY_MAX_Y) / 2);
     m_snake.reset(startPos);
@@ -90,15 +105,42 @@ void Game::handleInput(const sf::Event& event) {
     sf::Keyboard::Key key = event.key.code;
 
     if (key == sf::Keyboard::Escape) {
-        m_window.close();
+        // From playing states → return to mode select; otherwise quit
+        if (m_state == GameState::Playing || m_state == GameState::Paused ||
+            m_state == GameState::GameOver || m_state == GameState::Win) {
+            resetGame();
+            m_state = GameState::ModeSelect;
+        } else if (m_state == GameState::ModeSelect || m_state == GameState::Start) {
+            m_window.close();
+        } else {
+            m_window.close();
+        }
         return;
     }
 
     switch (m_state) {
+        // ── MODE SELECT ──────────────────────────────────────
+        case GameState::ModeSelect: {
+            if (key == sf::Keyboard::Num1) {
+                m_gameMode = GameMode::Classic;
+                resetGame();
+                m_state = GameState::Start;
+                m_audio.play(SoundId::Start);
+            } else if (key == sf::Keyboard::Num2) {
+                m_gameMode = GameMode::Challenge;
+                resetGame();
+                m_state = GameState::Start;
+                m_audio.play(SoundId::Start);
+            }
+            break;
+        }
         case GameState::Start: {
             if (key == sf::Keyboard::Enter || key == sf::Keyboard::Space) {
                 m_state = GameState::Playing;
                 m_audio.play(SoundId::Start);
+            } else if (key == sf::Keyboard::M) {
+                resetGame();
+                m_state = GameState::ModeSelect;
             }
             break;
         }
@@ -114,6 +156,9 @@ void Game::handleInput(const sf::Event& event) {
             } else if (key == sf::Keyboard::Space) {
                 m_state = GameState::Paused;
                 m_audio.play(SoundId::Pause);
+            } else if (key == sf::Keyboard::M) {
+                resetGame();
+                m_state = GameState::ModeSelect;
             }
             break;
         }
@@ -121,6 +166,9 @@ void Game::handleInput(const sf::Event& event) {
             if (key == sf::Keyboard::Space) {
                 m_state = GameState::Playing;
                 m_audio.play(SoundId::Pause);
+            } else if (key == sf::Keyboard::M) {
+                resetGame();
+                m_state = GameState::ModeSelect;
             }
             break;
         }
@@ -133,6 +181,9 @@ void Game::handleInput(const sf::Event& event) {
                 resetGame();
                 m_state = GameState::Playing;
                 m_audio.play(SoundId::Start);
+            } else if (key == sf::Keyboard::M) {
+                resetGame();
+                m_state = GameState::ModeSelect;
             }
             break;
         }
@@ -167,13 +218,35 @@ void Game::updateFixedStep() {
             saveHighScore();
         }
 
+        // ── Challenge mode: track food eaten this wave ──
+        if (m_gameMode == GameMode::Challenge) {
+            m_challengeFoodEaten++;
+            if (m_challengeFoodEaten >= m_challengeTarget) {
+                // Wave complete!
+                m_challengeWaveFlash = 2.0f;
+                m_challengeWave++;
+                m_challengeFoodEaten = 0;
+                m_challengeTarget += 2;                              // need 2 more each wave
+                m_challengeTimeLeft = 30.0f + (m_challengeWave - 1) * 5.0f; // +5s per wave
+                if (m_challengeTimeLeft > 90.0f) m_challengeTimeLeft = 90.0f;
+                m_audio.play(SoundId::Start);
+
+                FloatingText wft;
+                wft.text = "WAVE " + std::to_string(m_challengeWave - 1) + " CLEAR!";
+                wft.position = sf::Vector2f(WINDOW_WIDTH / 2.0f, 220.0f);
+                wft.color = sf::Color(46, 204, 113);
+                wft.lifetime = 2.0f;
+                wft.maxLifetime = 2.0f;
+                m_floatingTexts.push_back(wft);
+            }
+        }
+
         // Level increases every 5 food items collected (every 50 points)
         int newLevel = 1 + (m_score / 50);
         if (newLevel > m_level) {
             m_level = newLevel;
-            m_snake.setLevel(m_level); // Transforms the snake's color!
+            m_snake.setLevel(m_level);
 
-            // Celebratory Level-Up Sound & Banner
             m_audio.play(SoundId::Start);
 
             sf::Vector2f headPx(
@@ -216,7 +289,6 @@ void Game::updateFixedStep() {
         if (!spawned) {
             triggerWin();
         } else if (m_level >= 6) {
-            // Spawn obstacles near the new food position, every 6 levels
             m_obstacles.onFoodSpawned(m_food.getPosition(), m_snake.getBody(),
                                       PLAY_MIN_X, PLAY_MAX_X, PLAY_MIN_Y, PLAY_MAX_Y, m_level);
         }
@@ -329,13 +401,25 @@ void Game::update(float dt) {
     m_snake.updateAnimation(dt);
     m_obstacles.updateAnimation(dt);
 
-    if (m_state == GameState::Start) {
+    if (m_state == GameState::ModeSelect || m_state == GameState::Start) {
         m_startBlinkTimer += dt;
     }
 
-    // Active game timer: advances only while playing
+    // Active game timer
     if (m_state == GameState::Playing) {
         m_gameTime += dt;
+
+        // ── Challenge mode: countdown ──────────────────────
+        if (m_gameMode == GameMode::Challenge) {
+            m_challengeTimeLeft -= dt;
+            if (m_challengeWaveFlash > 0.0f) {
+                m_challengeWaveFlash -= dt;
+            }
+            if (m_challengeTimeLeft <= 0.0f) {
+                m_challengeTimeLeft = 0.0f;
+                startDeathSequence(); // Time's up → game over
+            }
+        }
     }
 
     if (m_state == GameState::Dying) {
@@ -423,8 +507,21 @@ void Game::render(float alpha) {
     m_ui.renderHUD(m_window, static_cast<int>(std::round(m_displayedScore)),
                    m_highScore, m_level, m_gameTime, WINDOW_WIDTH, HUD_HEIGHT);
 
+    // 7b. Challenge mode: overlay countdown + food progress bar
+    if (m_gameMode == GameMode::Challenge &&
+        (m_state == GameState::Playing || m_state == GameState::Dying)) {
+        float totalTime = 30.0f + (m_challengeWave - 1) * 5.0f;
+        if (totalTime > 90.0f) totalTime = 90.0f;
+        m_ui.renderChallengeHUD(m_window, m_challengeFoodEaten, m_challengeTarget,
+                                m_challengeTimeLeft, totalTime, m_challengeWave,
+                                WINDOW_WIDTH, HUD_HEIGHT);
+    }
+
     // 8. Render Overlays
     switch (m_state) {
+        case GameState::ModeSelect:
+            m_ui.renderModeSelectScreen(m_window, WINDOW_WIDTH, WINDOW_HEIGHT, m_startBlinkTimer);
+            break;
         case GameState::Start:
             m_ui.renderStartScreen(m_window, WINDOW_WIDTH, WINDOW_HEIGHT, m_startBlinkTimer);
             break;
@@ -432,10 +529,19 @@ void Game::render(float alpha) {
             m_ui.renderPauseScreen(m_window, WINDOW_WIDTH, WINDOW_HEIGHT);
             break;
         case GameState::GameOver:
-            m_ui.renderGameOverScreen(m_window, m_score, m_highScore, m_gameTime, WINDOW_WIDTH, WINDOW_HEIGHT);
+            if (m_gameMode == GameMode::Challenge) {
+                m_ui.renderChallengeGameOverScreen(m_window, m_challengeWave,
+                    m_challengeFoodEaten, m_challengeTarget, m_gameTime, WINDOW_WIDTH, WINDOW_HEIGHT);
+            } else {
+                m_ui.renderGameOverScreen(m_window, m_score, m_highScore, m_gameTime, WINDOW_WIDTH, WINDOW_HEIGHT);
+            }
             break;
         case GameState::Win:
-            m_ui.renderWinScreen(m_window, m_score, m_gameTime, WINDOW_WIDTH, WINDOW_HEIGHT);
+            if (m_gameMode == GameMode::Challenge) {
+                m_ui.renderChallengeWinScreen(m_window, m_challengeWave, m_score, m_gameTime, WINDOW_WIDTH, WINDOW_HEIGHT);
+            } else {
+                m_ui.renderWinScreen(m_window, m_score, m_gameTime, WINDOW_WIDTH, WINDOW_HEIGHT);
+            }
             break;
         case GameState::Playing:
         case GameState::Dying:

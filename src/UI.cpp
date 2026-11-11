@@ -280,6 +280,126 @@ void UI::renderFloatingText(sf::RenderWindow& window, const std::string& text,
     window.draw(fText);
 }
 
+void UI::renderModeSelectScreen(sf::RenderWindow& window, int windowWidth, int windowHeight, float blinkTimer) const {
+    sf::RectangleShape overlay(sf::Vector2f(static_cast<float>(windowWidth), static_cast<float>(windowHeight)));
+    overlay.setFillColor(sf::Color(10, 13, 22, 240));
+    window.draw(overlay);
+
+    drawCenteredText(window, "SNAKE GAME PRO", 80.0f, 44, sf::Color(46, 204, 113), true);
+    drawCenteredText(window, "SELECT GAME MODE", 125.0f, 18, sf::Color(52, 152, 219), true);
+
+    float cardW = 340.0f;
+    float cardH = 260.0f;
+    float cardY = 165.0f;
+
+    // Card 1: CLASSIC MODE
+    float card1X = (static_cast<float>(windowWidth) / 2.0f) - cardW - 15.0f;
+    sf::RectangleShape card1(sf::Vector2f(cardW, cardH));
+    card1.setPosition(card1X, cardY);
+    card1.setFillColor(sf::Color(18, 25, 38));
+    card1.setOutlineThickness(2.0f);
+    card1.setOutlineColor(sf::Color(46, 204, 113));
+    window.draw(card1);
+
+    // Card 1 header badge
+    sf::RectangleShape badge1(sf::Vector2f(cardW, 40.0f));
+    badge1.setPosition(card1X, cardY);
+    badge1.setFillColor(sf::Color(28, 48, 40));
+    window.draw(badge1);
+
+    // Text for Card 1
+    float c1CenterX = card1X + cardW / 2.0f;
+    if (m_fontLoaded) {
+        sf::Text t;
+        t.setFont(m_font);
+        t.setCharacterSize(18);
+        t.setStyle(sf::Text::Bold);
+        t.setFillColor(sf::Color(46, 204, 113));
+        t.setString("[ 1 ] CLASSIC MODE");
+        sf::FloatRect b = t.getLocalBounds();
+        t.setOrigin(b.left + b.width / 2.0f, b.top + b.height / 2.0f);
+        t.setPosition(c1CenterX, cardY + 20.0f);
+        window.draw(t);
+
+        auto drawCardLine = [&](const std::string& line, float y, sf::Color col, unsigned int sz = 13, bool bold = false) {
+            sf::Text lt;
+            lt.setFont(m_font);
+            lt.setCharacterSize(sz);
+            if (bold) lt.setStyle(sf::Text::Bold);
+            lt.setFillColor(col);
+            lt.setString(line);
+            sf::FloatRect lb = lt.getLocalBounds();
+            lt.setOrigin(lb.left + lb.width / 2.0f, lb.top + lb.height / 2.0f);
+            lt.setPosition(c1CenterX, y);
+            window.draw(lt);
+        };
+
+        drawCardLine("The Original Endless Snake", cardY + 65.0f, sf::Color(241, 196, 15), 14, true);
+        drawCardLine("- Infinite gameplay & high score chase", cardY + 100.0f, sf::Color(220, 225, 230));
+        drawCardLine("- Level up every 5 food items", cardY + 125.0f, sf::Color(0, 229, 255));
+        drawCardLine("- Dynamic colors & Crimson at Lvl 5", cardY + 150.0f, sf::Color(255, 45, 75));
+        drawCardLine("- Obstacles appear starting at Level 6", cardY + 175.0f, sf::Color(241, 196, 15));
+        drawCardLine("- Pass-through portal wrap borders", cardY + 200.0f, sf::Color(52, 152, 219));
+        drawCardLine("PRESS [1] TO CHOOSE", cardY + 235.0f, sf::Color(46, 204, 113), 15, true);
+    }
+
+    // Card 2: TIME ATTACK / CHALLENGE MODE
+    float card2X = (static_cast<float>(windowWidth) / 2.0f) + 15.0f;
+    sf::RectangleShape card2(sf::Vector2f(cardW, cardH));
+    card2.setPosition(card2X, cardY);
+    card2.setFillColor(sf::Color(25, 20, 35));
+    card2.setOutlineThickness(2.0f);
+    card2.setOutlineColor(sf::Color(255, 105, 180));
+    window.draw(card2);
+
+    // Card 2 header badge
+    sf::RectangleShape badge2(sf::Vector2f(cardW, 40.0f));
+    badge2.setPosition(card2X, cardY);
+    badge2.setFillColor(sf::Color(50, 30, 55));
+    window.draw(badge2);
+
+    float c2CenterX = card2X + cardW / 2.0f;
+    if (m_fontLoaded) {
+        sf::Text t2;
+        t2.setFont(m_font);
+        t2.setCharacterSize(18);
+        t2.setStyle(sf::Text::Bold);
+        t2.setFillColor(sf::Color(255, 105, 180));
+        t2.setString("[ 2 ] TIME CHALLENGE");
+        sf::FloatRect b2 = t2.getLocalBounds();
+        t2.setOrigin(b2.left + b2.width / 2.0f, b2.top + b2.height / 2.0f);
+        t2.setPosition(c2CenterX, cardY + 20.0f);
+        window.draw(t2);
+
+        auto drawCard2Line = [&](const std::string& line, float y, sf::Color col, unsigned int sz = 13, bool bold = false) {
+            sf::Text lt;
+            lt.setFont(m_font);
+            lt.setCharacterSize(sz);
+            if (bold) lt.setStyle(sf::Text::Bold);
+            lt.setFillColor(col);
+            lt.setString(line);
+            sf::FloatRect lb = lt.getLocalBounds();
+            lt.setOrigin(lb.left + lb.width / 2.0f, lb.top + lb.height / 2.0f);
+            lt.setPosition(c2CenterX, y);
+            window.draw(lt);
+        };
+
+        drawCard2Line("Eat Food Before Time Expires!", cardY + 65.0f, sf::Color(255, 60, 80), 14, true);
+        drawCard2Line("- Target quota per wave (5, 7, 9...)", cardY + 100.0f, sf::Color(220, 225, 230));
+        drawCard2Line("- Ticking countdown timer!", cardY + 125.0f, sf::Color(255, 75, 95));
+        drawCard2Line("- Time bonus rewarded per clear", cardY + 150.0f, sf::Color(241, 196, 15));
+        drawCard2Line("- Fast-paced rush against the clock", cardY + 175.0f, sf::Color(0, 229, 255));
+        drawCard2Line("- Pure arcade adrenaline challenge", cardY + 200.0f, sf::Color(190, 95, 255));
+        drawCard2Line("PRESS [2] TO CHOOSE", cardY + 235.0f, sf::Color(255, 105, 180), 15, true);
+    }
+
+    bool showPrompt = std::fmod(blinkTimer, 1.0f) < 0.65f;
+    if (showPrompt) {
+        drawCenteredText(window, "PRESS [ 1 ] OR [ 2 ] ON KEYBOARD TO SELECT", 475.0f, 18, sf::Color(241, 196, 15), true);
+    }
+    drawCenteredText(window, "Press ESC to Quit Game", 515.0f, 13, sf::Color(149, 165, 166));
+}
+
 void UI::renderStartScreen(sf::RenderWindow& window, int windowWidth, int windowHeight, float blinkTimer) const {
     sf::RectangleShape overlay(sf::Vector2f(static_cast<float>(windowWidth), static_cast<float>(windowHeight)));
     overlay.setFillColor(sf::Color(10, 13, 20, 230));
@@ -305,11 +425,11 @@ void UI::renderStartScreen(sf::RenderWindow& window, int windowWidth, int window
     drawCenteredText(window, "Timer  :  Survive as long as possible for higher ranks!", boxY + 84.0f, 14, sf::Color(0, 229, 255));
     drawCenteredText(window, "Level Up  :  Snake changes color every level (Crimson at Lvl 5!)", boxY + 114.0f, 14, sf::Color(255, 45, 75));
     drawCenteredText(window, "Portal Lines  :  Pass freely through boundaries without dying!", boxY + 144.0f, 14, sf::Color(52, 152, 219));
-    drawCenteredText(window, "Danger  :  Only biting your own body will kill you!", boxY + 174.0f, 14, sf::Color(231, 76, 60));
+    drawCenteredText(window, "Press M at any time to return to Mode Select", boxY + 174.0f, 14, sf::Color(46, 204, 113));
 
     bool showPrompt = std::fmod(blinkTimer, 1.0f) < 0.65f;
     if (showPrompt) {
-        drawCenteredText(window, "PRESS ENTER TO START", 480.0f, 22, sf::Color(46, 204, 113), true);
+        drawCenteredText(window, "PRESS ENTER OR SPACE TO START", 480.0f, 22, sf::Color(46, 204, 113), true);
     }
 }
 
@@ -341,8 +461,8 @@ void UI::renderGameOverScreen(sf::RenderWindow& window, int score, int highScore
     overlay.setFillColor(sf::Color(10, 12, 18, 220));
     window.draw(overlay);
 
-    float boxW = 440.0f;
-    float boxH = 290.0f;
+    float boxW = 460.0f;
+    float boxH = 300.0f;
     float boxX = (static_cast<float>(windowWidth) - boxW) / 2.0f;
     float boxY = (static_cast<float>(windowHeight) - boxH) / 2.0f;
 
@@ -353,18 +473,50 @@ void UI::renderGameOverScreen(sf::RenderWindow& window, int score, int highScore
     box.setOutlineColor(sf::Color(231, 76, 60));
     window.draw(box);
 
-    drawCenteredText(window, "GAME OVER", boxY + 42.0f, 36, sf::Color(231, 76, 60), true);
+    drawCenteredText(window, "GAME OVER", boxY + 40.0f, 36, sf::Color(231, 76, 60), true);
 
     if (score >= highScore && score > 0) {
-        drawCenteredText(window, "* NEW HIGH SCORE! *", boxY + 92.0f, 20, sf::Color(241, 196, 15), true);
+        drawCenteredText(window, "* NEW HIGH SCORE! *", boxY + 86.0f, 20, sf::Color(241, 196, 15), true);
     } else {
-        drawCenteredText(window, "Final Score: " + std::to_string(score), boxY + 92.0f, 19, sf::Color(236, 240, 241));
+        drawCenteredText(window, "Final Score: " + std::to_string(score), boxY + 86.0f, 19, sf::Color(236, 240, 241));
     }
 
-    drawCenteredText(window, "Time Survived: " + formatTime(gameTime), boxY + 130.0f, 17, sf::Color(0, 229, 255));
-    drawCenteredText(window, "Best Score: " + std::to_string(highScore), boxY + 165.0f, 16, sf::Color(189, 195, 199));
-    drawCenteredText(window, "Press ENTER to Restart", boxY + 212.0f, 20, sf::Color(46, 204, 113), true);
-    drawCenteredText(window, "Press ESC to Quit", boxY + 252.0f, 14, sf::Color(149, 165, 166));
+    drawCenteredText(window, "Time Survived: " + formatTime(gameTime), boxY + 120.0f, 17, sf::Color(0, 229, 255));
+    drawCenteredText(window, "Best Score: " + std::to_string(highScore), boxY + 152.0f, 16, sf::Color(189, 195, 199));
+    drawCenteredText(window, "Press ENTER to Restart", boxY + 195.0f, 19, sf::Color(46, 204, 113), true);
+    drawCenteredText(window, "Press M for Mode Select", boxY + 230.0f, 16, sf::Color(52, 152, 219), true);
+    drawCenteredText(window, "Press ESC to Quit", boxY + 265.0f, 14, sf::Color(149, 165, 166));
+}
+
+void UI::renderChallengeGameOverScreen(sf::RenderWindow& window, int wave, int foodEaten, int target,
+                                       float gameTime, int windowWidth, int windowHeight) const {
+    sf::RectangleShape overlay(sf::Vector2f(static_cast<float>(windowWidth), static_cast<float>(windowHeight)));
+    overlay.setFillColor(sf::Color(15, 10, 18, 230));
+    window.draw(overlay);
+
+    float boxW = 480.0f;
+    float boxH = 320.0f;
+    float boxX = (static_cast<float>(windowWidth) - boxW) / 2.0f;
+    float boxY = (static_cast<float>(windowHeight) - boxH) / 2.0f;
+
+    sf::RectangleShape box(sf::Vector2f(boxW, boxH));
+    box.setPosition(boxX, boxY);
+    box.setFillColor(sf::Color(26, 18, 28));
+    box.setOutlineThickness(2.0f);
+    box.setOutlineColor(sf::Color(255, 75, 95));
+    window.draw(box);
+
+    drawCenteredText(window, "TIME'S UP / GAME OVER", boxY + 38.0f, 30, sf::Color(255, 75, 95), true);
+    drawCenteredText(window, "Challenge Attempt Ended", boxY + 74.0f, 16, sf::Color(220, 225, 230));
+
+    drawCenteredText(window, "Wave Reached: Wave " + std::to_string(wave), boxY + 110.0f, 18, sf::Color(255, 215, 0), true);
+    drawCenteredText(window, "Food Quota: " + std::to_string(foodEaten) + " / " + std::to_string(target) + " collected",
+                     boxY + 140.0f, 16, sf::Color(0, 229, 255));
+    drawCenteredText(window, "Total Time Active: " + formatTime(gameTime), boxY + 170.0f, 16, sf::Color(189, 195, 199));
+
+    drawCenteredText(window, "Press ENTER to Retry Wave", boxY + 215.0f, 19, sf::Color(46, 204, 113), true);
+    drawCenteredText(window, "Press M for Mode Select", boxY + 248.0f, 16, sf::Color(52, 152, 219), true);
+    drawCenteredText(window, "Press ESC to Quit", boxY + 280.0f, 13, sf::Color(149, 165, 166));
 }
 
 void UI::renderWinScreen(sf::RenderWindow& window, int score, float gameTime,
@@ -374,7 +526,7 @@ void UI::renderWinScreen(sf::RenderWindow& window, int score, float gameTime,
     window.draw(overlay);
 
     float boxW = 460.0f;
-    float boxH = 280.0f;
+    float boxH = 290.0f;
     float boxX = (static_cast<float>(windowWidth) - boxW) / 2.0f;
     float boxY = (static_cast<float>(windowHeight) - boxH) / 2.0f;
 
@@ -385,12 +537,122 @@ void UI::renderWinScreen(sf::RenderWindow& window, int score, float gameTime,
     box.setOutlineColor(sf::Color(241, 196, 15));
     window.draw(box);
 
-    drawCenteredText(window, "CONGRATULATIONS!", boxY + 45.0f, 34, sf::Color(241, 196, 15), true);
-    drawCenteredText(window, "You conquered the entire board!", boxY + 95.0f, 18, sf::Color(46, 204, 113));
-    drawCenteredText(window, "Total Score: " + std::to_string(score), boxY + 135.0f, 19, sf::Color(236, 240, 241));
-    drawCenteredText(window, "Clear Time: " + formatTime(gameTime), boxY + 168.0f, 17, sf::Color(0, 229, 255));
-    drawCenteredText(window, "Press ENTER to Play Again", boxY + 215.0f, 20, sf::Color(52, 152, 219), true);
-    drawCenteredText(window, "Press ESC to Quit", boxY + 250.0f, 14, sf::Color(149, 165, 166));
+    drawCenteredText(window, "CONGRATULATIONS!", boxY + 40.0f, 34, sf::Color(241, 196, 15), true);
+    drawCenteredText(window, "You conquered the entire board!", boxY + 85.0f, 18, sf::Color(46, 204, 113));
+    drawCenteredText(window, "Total Score: " + std::to_string(score), boxY + 122.0f, 19, sf::Color(236, 240, 241));
+    drawCenteredText(window, "Clear Time: " + formatTime(gameTime), boxY + 155.0f, 17, sf::Color(0, 229, 255));
+    drawCenteredText(window, "Press ENTER to Play Again", boxY + 198.0f, 19, sf::Color(52, 152, 219), true);
+    drawCenteredText(window, "Press M for Mode Select", boxY + 230.0f, 16, sf::Color(46, 204, 113), true);
+    drawCenteredText(window, "Press ESC to Quit", boxY + 260.0f, 14, sf::Color(149, 165, 166));
+}
+
+void UI::renderChallengeWinScreen(sf::RenderWindow& window, int wave, int score,
+                                  float gameTime, int windowWidth, int windowHeight) const {
+    sf::RectangleShape overlay(sf::Vector2f(static_cast<float>(windowWidth), static_cast<float>(windowHeight)));
+    overlay.setFillColor(sf::Color(12, 8, 22, 235));
+    window.draw(overlay);
+
+    float boxW = 480.0f;
+    float boxH = 290.0f;
+    float boxX = (static_cast<float>(windowWidth) - boxW) / 2.0f;
+    float boxY = (static_cast<float>(windowHeight) - boxH) / 2.0f;
+
+    sf::RectangleShape box(sf::Vector2f(boxW, boxH));
+    box.setPosition(boxX, boxY);
+    box.setFillColor(sf::Color(28, 20, 36));
+    box.setOutlineThickness(2.0f);
+    box.setOutlineColor(sf::Color(255, 105, 180));
+    window.draw(box);
+
+    drawCenteredText(window, "CHALLENGE VICTORY!", boxY + 40.0f, 32, sf::Color(255, 105, 180), true);
+    drawCenteredText(window, "All Target Food Quotas Conquered!", boxY + 85.0f, 17, sf::Color(46, 204, 113));
+    drawCenteredText(window, "Waves Cleared: " + std::to_string(wave), boxY + 120.0f, 18, sf::Color(255, 215, 0));
+    drawCenteredText(window, "Total Score: " + std::to_string(score) + "  |  Time: " + formatTime(gameTime), boxY + 152.0f, 16, sf::Color(0, 229, 255));
+    drawCenteredText(window, "Press ENTER to Play Again", boxY + 195.0f, 19, sf::Color(52, 152, 219), true);
+    drawCenteredText(window, "Press M for Mode Select", boxY + 228.0f, 16, sf::Color(46, 204, 113), true);
+    drawCenteredText(window, "Press ESC to Quit", boxY + 258.0f, 14, sf::Color(149, 165, 166));
+}
+
+void UI::renderChallengeHUD(sf::RenderWindow& window, int foodEaten, int target,
+                            float timeLeft, float totalTime, int wave,
+                            int windowWidth, int hudHeight) const {
+    float barY = static_cast<float>(hudHeight) + 4.0f;
+    float barW = static_cast<float>(windowWidth) - 20.0f;
+    float barH = 26.0f;
+    float barX = 10.0f;
+
+    // Glowing background banner
+    sf::RectangleShape panel(sf::Vector2f(barW, barH));
+    panel.setPosition(barX, barY);
+    panel.setFillColor(sf::Color(15, 20, 32, 215));
+    panel.setOutlineThickness(1.2f);
+    panel.setOutlineColor(sf::Color(255, 105, 180, 160));
+    window.draw(panel);
+
+    if (m_fontLoaded) {
+        float centerY = barY + barH / 2.0f;
+
+        // 1. Wave indicator
+        sf::Text waveText;
+        waveText.setFont(m_font);
+        waveText.setString("WAVE " + std::to_string(wave));
+        waveText.setCharacterSize(13);
+        waveText.setStyle(sf::Text::Bold);
+        waveText.setFillColor(sf::Color(255, 215, 0));
+        sf::FloatRect bW = waveText.getLocalBounds();
+        waveText.setOrigin(0.0f, bW.top + bW.height / 2.0f);
+        waveText.setPosition(barX + 12.0f, centerY);
+        window.draw(waveText);
+
+        // 2. Food Quota Target & Progress Bar
+        float progress = (target > 0) ? (static_cast<float>(foodEaten) / static_cast<float>(target)) : 0.0f;
+        progress = std::clamp(progress, 0.0f, 1.0f);
+
+        sf::Text foodText;
+        foodText.setFont(m_font);
+        foodText.setString("FOOD TARGET: " + std::to_string(foodEaten) + " / " + std::to_string(target));
+        foodText.setCharacterSize(13);
+        foodText.setStyle(sf::Text::Bold);
+        foodText.setFillColor(sf::Color(0, 229, 255));
+        sf::FloatRect bF = foodText.getLocalBounds();
+        foodText.setOrigin(0.0f, bF.top + bF.height / 2.0f);
+        foodText.setPosition(barX + 115.0f, centerY);
+        window.draw(foodText);
+
+        // Progress bar background
+        float barStartX = barX + 310.0f;
+        float barWidth = 200.0f;
+        sf::RectangleShape pBg(sf::Vector2f(barWidth, 10.0f));
+        pBg.setPosition(barStartX, centerY - 5.0f);
+        pBg.setFillColor(sf::Color(35, 45, 60));
+        window.draw(pBg);
+
+        // Progress bar fill
+        if (progress > 0.0f) {
+            sf::RectangleShape pFill(sf::Vector2f(barWidth * progress, 10.0f));
+            pFill.setPosition(barStartX, centerY - 5.0f);
+            pFill.setFillColor(sf::Color(46, 204, 113));
+            window.draw(pFill);
+        }
+
+        // 3. Countdown timer
+        sf::Color timeCol = (timeLeft <= 5.0f) ? sf::Color(255, 45, 75)
+                          : (timeLeft <= 10.0f) ? sf::Color(255, 140, 0)
+                          : sf::Color(241, 196, 15);
+
+        sf::Text timerText;
+        timerText.setFont(m_font);
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "TIME LEFT: %02.1fs", timeLeft);
+        timerText.setString(buf);
+        timerText.setCharacterSize(13);
+        timerText.setStyle(sf::Text::Bold);
+        timerText.setFillColor(timeCol);
+        sf::FloatRect bT = timerText.getLocalBounds();
+        timerText.setOrigin(bT.left + bT.width, bT.top + bT.height / 2.0f);
+        timerText.setPosition(barX + barW - 12.0f, centerY);
+        window.draw(timerText);
+    }
 }
 
 void UI::renderFallbackText(sf::RenderWindow& window, const std::string& str,

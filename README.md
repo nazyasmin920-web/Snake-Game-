@@ -36,9 +36,32 @@ All DLLs are bundled — nothing else needed.
 | `A` / `←` | Move Left |
 | `S` / `↓` | Move Down |
 | `D` / `→` | Move Right |
+| `1` / `2` | Select Mode (Classic / Time Attack) |
+| `M` | Return to Mode Select Menu |
 | `Space` | Pause / Resume |
 | `Enter` | Start / Restart |
-| `Escape` | Quit |
+| `Escape` | Main Menu / Quit |
+
+---
+
+## 🕹️ Two Game Modes
+
+### 🟢 Part 1: Classic Mode (The Original Game)
+- **Endless Survival:** No countdown timer—play for as long as you can survive!
+- **Leveling & Speed:** Every 5 foods (50 pts) advances your level and increases speed.
+- **Color Progression:** Snake transforms colors (Emerald, Cyan, Purple, Gold, Crimson at Lvl 5, Rainbow at Lvl 6+).
+- **Hazard Obstacles:** Starting at Level 6, random hazard blocks appear near food.
+- **Wrap-Around Portals:** Seamless screen wrapping with no border death.
+
+### 🔴 Part 2: Time Attack / Food Quota Challenge Mode
+- **Eat Under Pressure:** You must eat a required amount of food before the countdown runs out!
+- **Wave Progression:**
+  - **Wave 1:** 5 food items in 30 seconds
+  - **Wave 2+:** Target quota increases (+2 food each wave) with bonus countdown time awarded!
+- **Dynamic Heads-Up Display:**
+  - Real-time countdown timer that flashes urgent red when under 10 seconds.
+  - Interactive food progress bar showing current quota vs target.
+- **Adrenaline Rush:** Test your speed, routing, and reflexes against the clock!
 
 ---
 

@@ -42,6 +42,8 @@ All DLLs are bundled — nothing else needed.
 | `Enter` | Start / Restart |
 | `Escape` | Main Menu / Quit |
 
+> 💡 **Tip:** Press `M` anytime during gameplay or game over to quickly switch between Classic and Time Challenge modes!
+
 ---
 
 ## 🕹️ Two Game Modes
@@ -179,8 +181,8 @@ Snake Game/
 ## 🚀 Creating a New Release (for maintainers)
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.1.2
+git push origin v1.1.2
 ```
 
 GitHub Actions will automatically:

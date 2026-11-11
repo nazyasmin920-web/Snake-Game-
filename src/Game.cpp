@@ -503,18 +503,15 @@ void Game::render(float alpha) {
 
     m_window.setView(m_defaultView);
 
-    // 7. Render top HUD
-    m_ui.renderHUD(m_window, static_cast<int>(std::round(m_displayedScore)),
-                   m_highScore, m_level, m_gameTime, WINDOW_WIDTH, HUD_HEIGHT);
-
-    // 7b. Challenge mode: overlay countdown + food progress bar
-    if (m_gameMode == GameMode::Challenge &&
-        (m_state == GameState::Playing || m_state == GameState::Dying)) {
-        float totalTime = 30.0f + (m_challengeWave - 1) * 5.0f;
-        if (totalTime > 90.0f) totalTime = 90.0f;
-        m_ui.renderChallengeHUD(m_window, m_challengeFoodEaten, m_challengeTarget,
-                                m_challengeTimeLeft, totalTime, m_challengeWave,
+    // 7. Render top HUD (Dedicated clean bar: never overlaps or hides the board/food)
+    if (m_gameMode == GameMode::Challenge) {
+        m_ui.renderChallengeHUD(m_window, static_cast<int>(std::round(m_displayedScore)),
+                                m_highScore, m_challengeFoodEaten, m_challengeTarget,
+                                m_challengeTimeLeft, m_challengeWave,
                                 WINDOW_WIDTH, HUD_HEIGHT);
+    } else {
+        m_ui.renderHUD(m_window, static_cast<int>(std::round(m_displayedScore)),
+                       m_highScore, m_level, m_gameTime, WINDOW_WIDTH, HUD_HEIGHT);
     }
 
     // 8. Render Overlays

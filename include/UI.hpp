@@ -30,9 +30,9 @@ public:
     void renderChallengeWinScreen(sf::RenderWindow& window, int wave, int score,
                                   float gameTime, int windowWidth, int windowHeight) const;
 
-    // Challenge HUD overlay (countdown + food progress bar)
-    void renderChallengeHUD(sf::RenderWindow& window, int foodEaten, int target,
-                            float timeLeft, float totalTime, int wave,
+    // Challenge Mode top HUD (Wave, Target quota progress, Score, High score, and Countdown timer)
+    void renderChallengeHUD(sf::RenderWindow& window, int score, int highScore,
+                            int foodEaten, int target, float timeLeft, int wave,
                             int windowWidth, int hudHeight) const;
 
     // Helper to draw floating score/level texts

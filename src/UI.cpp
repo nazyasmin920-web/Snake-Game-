@@ -573,26 +573,33 @@ void UI::renderChallengeWinScreen(sf::RenderWindow& window, int wave, int score,
     drawCenteredText(window, "Press ESC to Quit", boxY + 258.0f, 14, sf::Color(149, 165, 166));
 }
 
-void UI::renderChallengeHUD(sf::RenderWindow& window, int foodEaten, int target,
-                            float timeLeft, float totalTime, int wave,
+void UI::renderChallengeHUD(sf::RenderWindow& window, int score, int highScore,
+                            int foodEaten, int target, float timeLeft, int wave,
                             int windowWidth, int hudHeight) const {
-    float barY = static_cast<float>(hudHeight) + 4.0f;
-    float barW = static_cast<float>(windowWidth) - 20.0f;
-    float barH = 26.0f;
-    float barX = 10.0f;
+    // 1. Full HUD bar background
+    sf::RectangleShape hudBar(sf::Vector2f(static_cast<float>(windowWidth), static_cast<float>(hudHeight)));
+    hudBar.setPosition(0.0f, 0.0f);
+    hudBar.setFillColor(sf::Color(12, 15, 22));
+    window.draw(hudBar);
 
-    // Glowing background banner
-    sf::RectangleShape panel(sf::Vector2f(barW, barH));
-    panel.setPosition(barX, barY);
-    panel.setFillColor(sf::Color(15, 20, 32, 215));
-    panel.setOutlineThickness(1.2f);
-    panel.setOutlineColor(sf::Color(255, 105, 180, 160));
-    window.draw(panel);
+    // Separator line at bottom (neon magenta/pink for challenge mode)
+    sf::RectangleShape separator(sf::Vector2f(static_cast<float>(windowWidth), 2.0f));
+    separator.setPosition(0.0f, static_cast<float>(hudHeight) - 2.0f);
+    separator.setFillColor(sf::Color(255, 105, 180, 210));
+    window.draw(separator);
+
+    float textY = static_cast<float>(hudHeight) / 2.0f;
 
     if (m_fontLoaded) {
-        float centerY = barY + barH / 2.0f;
+        // 1. WAVE BADGE CARD (x: 10, w: 85)
+        sf::RectangleShape waveCard(sf::Vector2f(85.0f, 26.0f));
+        waveCard.setOrigin(0.0f, 13.0f);
+        waveCard.setPosition(10.0f, textY);
+        waveCard.setFillColor(sf::Color(32, 24, 40));
+        waveCard.setOutlineThickness(1.0f);
+        waveCard.setOutlineColor(sf::Color(255, 105, 180, 160));
+        window.draw(waveCard);
 
-        // 1. Wave indicator
         sf::Text waveText;
         waveText.setFont(m_font);
         waveText.setString("WAVE " + std::to_string(wave));
@@ -600,58 +607,125 @@ void UI::renderChallengeHUD(sf::RenderWindow& window, int foodEaten, int target,
         waveText.setStyle(sf::Text::Bold);
         waveText.setFillColor(sf::Color(255, 215, 0));
         sf::FloatRect bW = waveText.getLocalBounds();
-        waveText.setOrigin(0.0f, bW.top + bW.height / 2.0f);
-        waveText.setPosition(barX + 12.0f, centerY);
+        waveText.setOrigin(bW.left + bW.width / 2.0f, bW.top + bW.height / 2.0f);
+        waveText.setPosition(10.0f + 42.5f, textY);
         window.draw(waveText);
 
-        // 2. Food Quota Target & Progress Bar
-        float progress = (target > 0) ? (static_cast<float>(foodEaten) / static_cast<float>(target)) : 0.0f;
-        progress = std::clamp(progress, 0.0f, 1.0f);
+        // 2. FOOD GOAL & PROGRESS BAR CARD (x: 103, w: 220)
+        sf::RectangleShape goalCard(sf::Vector2f(220.0f, 26.0f));
+        goalCard.setOrigin(0.0f, 13.0f);
+        goalCard.setPosition(103.0f, textY);
+        goalCard.setFillColor(sf::Color(18, 26, 36));
+        goalCard.setOutlineThickness(1.0f);
+        goalCard.setOutlineColor(sf::Color(42, 65, 85));
+        window.draw(goalCard);
 
         sf::Text foodText;
         foodText.setFont(m_font);
-        foodText.setString("FOOD TARGET: " + std::to_string(foodEaten) + " / " + std::to_string(target));
-        foodText.setCharacterSize(13);
+        foodText.setString("GOAL: " + std::to_string(foodEaten) + "/" + std::to_string(target));
+        foodText.setCharacterSize(12);
         foodText.setStyle(sf::Text::Bold);
         foodText.setFillColor(sf::Color(0, 229, 255));
         sf::FloatRect bF = foodText.getLocalBounds();
         foodText.setOrigin(0.0f, bF.top + bF.height / 2.0f);
-        foodText.setPosition(barX + 115.0f, centerY);
+        foodText.setPosition(113.0f, textY);
         window.draw(foodText);
 
-        // Progress bar background
-        float barStartX = barX + 310.0f;
-        float barWidth = 200.0f;
-        sf::RectangleShape pBg(sf::Vector2f(barWidth, 10.0f));
-        pBg.setPosition(barStartX, centerY - 5.0f);
-        pBg.setFillColor(sf::Color(35, 45, 60));
+        // Progress bar inside goal card
+        float progress = (target > 0) ? (static_cast<float>(foodEaten) / static_cast<float>(target)) : 0.0f;
+        progress = std::clamp(progress, 0.0f, 1.0f);
+        float pBarX = 212.0f;
+        float pBarW = 100.0f;
+        sf::RectangleShape pBg(sf::Vector2f(pBarW, 8.0f));
+        pBg.setPosition(pBarX, textY - 4.0f);
+        pBg.setFillColor(sf::Color(28, 36, 48));
         window.draw(pBg);
 
-        // Progress bar fill
         if (progress > 0.0f) {
-            sf::RectangleShape pFill(sf::Vector2f(barWidth * progress, 10.0f));
-            pFill.setPosition(barStartX, centerY - 5.0f);
+            sf::RectangleShape pFill(sf::Vector2f(pBarW * progress, 8.0f));
+            pFill.setPosition(pBarX, textY - 4.0f);
             pFill.setFillColor(sf::Color(46, 204, 113));
             window.draw(pFill);
         }
 
-        // 3. Countdown timer
-        sf::Color timeCol = (timeLeft <= 5.0f) ? sf::Color(255, 45, 75)
-                          : (timeLeft <= 10.0f) ? sf::Color(255, 140, 0)
-                          : sf::Color(241, 196, 15);
+        // 3. SCORE CARD (x: 331, w: 140)
+        sf::RectangleShape scoreCard(sf::Vector2f(140.0f, 26.0f));
+        scoreCard.setOrigin(0.0f, 13.0f);
+        scoreCard.setPosition(331.0f, textY);
+        scoreCard.setFillColor(sf::Color(22, 28, 40));
+        scoreCard.setOutlineThickness(1.0f);
+        scoreCard.setOutlineColor(sf::Color(40, 52, 72));
+        window.draw(scoreCard);
+
+        sf::Text scoreText;
+        scoreText.setFont(m_font);
+        scoreText.setString("SCORE: " + std::to_string(score));
+        scoreText.setCharacterSize(13);
+        scoreText.setStyle(sf::Text::Bold);
+        scoreText.setFillColor(sf::Color(236, 240, 241));
+        sf::FloatRect bS = scoreText.getLocalBounds();
+        scoreText.setOrigin(bS.left + bS.width / 2.0f, bS.top + bS.height / 2.0f);
+        scoreText.setPosition(331.0f + 70.0f, textY);
+        window.draw(scoreText);
+
+        // 4. HIGH SCORE CARD (x: 479, w: 140)
+        sf::RectangleShape highCard(sf::Vector2f(140.0f, 26.0f));
+        highCard.setOrigin(0.0f, 13.0f);
+        highCard.setPosition(479.0f, textY);
+        highCard.setFillColor(sf::Color(26, 24, 32));
+        highCard.setOutlineThickness(1.0f);
+        highCard.setOutlineColor(sf::Color(65, 55, 30));
+        window.draw(highCard);
+
+        sf::Text highText;
+        highText.setFont(m_font);
+        highText.setString("HIGH: " + std::to_string(highScore));
+        highText.setCharacterSize(13);
+        highText.setStyle(sf::Text::Bold);
+        highText.setFillColor(sf::Color(241, 196, 15));
+        sf::FloatRect bH = highText.getLocalBounds();
+        highText.setOrigin(bH.left + bH.width / 2.0f, bH.top + bH.height / 2.0f);
+        highText.setPosition(479.0f + 70.0f, textY);
+        window.draw(highText);
+
+        // 5. COUNTDOWN TIMER CARD (x: 627, w: 163)
+        sf::Color timeBorder = (timeLeft <= 5.0f) ? sf::Color(255, 45, 75)
+                             : (timeLeft <= 10.0f) ? sf::Color(255, 140, 0)
+                             : sf::Color(42, 70, 95);
+        sf::Color timeBg = (timeLeft <= 5.0f) ? sf::Color(45, 18, 25)
+                         : (timeLeft <= 10.0f) ? sf::Color(40, 28, 18)
+                         : sf::Color(20, 30, 42);
+        sf::Color timeTextCol = (timeLeft <= 5.0f) ? sf::Color(255, 60, 80)
+                              : (timeLeft <= 10.0f) ? sf::Color(255, 175, 25)
+                              : sf::Color(0, 229, 255);
+
+        sf::RectangleShape timerCard(sf::Vector2f(163.0f, 26.0f));
+        timerCard.setOrigin(0.0f, 13.0f);
+        timerCard.setPosition(627.0f, textY);
+        timerCard.setFillColor(timeBg);
+        timerCard.setOutlineThickness(1.2f);
+        timerCard.setOutlineColor(timeBorder);
+        window.draw(timerCard);
 
         sf::Text timerText;
         timerText.setFont(m_font);
         char buf[32];
-        std::snprintf(buf, sizeof(buf), "TIME LEFT: %02.1fs", timeLeft);
+        std::snprintf(buf, sizeof(buf), "TIME: %02.1fs", std::max(0.0f, timeLeft));
         timerText.setString(buf);
         timerText.setCharacterSize(13);
         timerText.setStyle(sf::Text::Bold);
-        timerText.setFillColor(timeCol);
+        timerText.setFillColor(timeTextCol);
         sf::FloatRect bT = timerText.getLocalBounds();
-        timerText.setOrigin(bT.left + bT.width, bT.top + bT.height / 2.0f);
-        timerText.setPosition(barX + barW - 12.0f, centerY);
+        timerText.setOrigin(bT.left + bT.width / 2.0f, bT.top + bT.height / 2.0f);
+        timerText.setPosition(627.0f + 81.5f, textY);
         window.draw(timerText);
+    } else {
+        renderFallbackText(window, "WAVE: " + std::to_string(wave), 15.0f, 10.0f, 14.0f, sf::Color(255, 215, 0));
+        renderFallbackText(window, "GOAL: " + std::to_string(foodEaten) + "/" + std::to_string(target), 120.0f, 10.0f, 14.0f, sf::Color(0, 229, 255));
+        renderFallbackText(window, "SCORE: " + std::to_string(score), 320.0f, 10.0f, 14.0f, sf::Color(236, 240, 241));
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "TIME: %02.1fs", std::max(0.0f, timeLeft));
+        renderFallbackText(window, buf, static_cast<float>(windowWidth) - 160.0f, 10.0f, 14.0f, sf::Color(255, 75, 95));
     }
 }
 
